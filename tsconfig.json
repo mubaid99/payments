@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		"target": "es6",
+		"module": "commonjs",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"moduleResolution": "node",
+		"noImplicitAny": false,
+		"sourceMap": false,
+		"outDir": "build",
+		"baseUrl": "src",
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"paths": {
+			"@modules/*": ["modules/*"],
+			"@admin/*": ["modules/admin/*"],
+			"@models/*": ["models/*"],
+			"@config": ["core/config"],
+			"@core/*": ["core/*"],
+			"@middlewares/*": ["middlewares/*"],
+			"@helpers/*": ["helpers/*"]
+		},
+		"types": ["node", "axios"],
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "test/**/*.ts"]
+}
