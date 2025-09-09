@@ -1,0 +1,678 @@
+{
+  "info": {
+    "name": "Holobank API Integration",
+    "description": "Complete Holobank API collection for KYC, Accounts, Cards, Transfers, and Balance management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "507f1f77bcf86cd799439011",
+      "type": "string"
+    },
+    {
+      "key": "account_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "card_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. KYC Management",
+      "item": [
+        {
+          "name": "Upload KYC Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', true);",
+                  "    pm.expect(jsonData.data).to.have.property('kycId');",
+                  "    pm.expect(jsonData.data).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test(\"KYC ID is generated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.isSuccess && jsonData.data.kycId) {",
+                  "        pm.collectionVariables.set('kyc_id', jsonData.data.kycId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "type": "text",
+                  "description": "MongoDB ObjectId of the user"
+                },
+                {
+                  "key": "document",
+                  "type": "file",
+                  "description": "KYC document file (PDF, JPG, PNG)",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/kyc",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "kyc"]
+            },
+            "description": "Upload KYC documents for user verification. User must exist in database before uploading KYC."
+          }
+        }
+      ],
+      "description": "KYC (Know Your Customer) document upload and status management"
+    },
+    {
+      "name": "2. Account Management",
+      "item": [
+        {
+          "name": "Create Bank Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Account created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', true);",
+                  "    pm.expect(jsonData.data).to.have.property('accountId');",
+                  "    pm.expect(jsonData.data).to.have.property('type');",
+                  "    pm.expect(jsonData.data).to.have.property('currency');",
+                  "    pm.expect(jsonData.data).to.have.property('balance');",
+                  "});",
+                  "",
+                  "pm.test(\"Save account ID for other requests\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.isSuccess && jsonData.data.accountId) {",
+                  "        pm.collectionVariables.set('account_id', jsonData.data.accountId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"type\": \"checking\",\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/account",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "account"]
+            },
+            "description": "Create a new bank account. KYC must be approved before account creation.\n\nAccount Types:\n- checking\n- savings\n- business\n\nCurrencies:\n- USD\n- EUR\n- GBP"
+          }
+        },
+        {
+          "name": "Create Savings Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Savings account created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.type).to.eql('savings');",
+                  "    pm.expect(jsonData.data.currency).to.eql('EUR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"type\": \"savings\",\n  \"currency\": \"EUR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/account",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "account"]
+            },
+            "description": "Example of creating a EUR savings account"
+          }
+        }
+      ],
+      "description": "Bank account creation and management"
+    },
+    {
+      "name": "3. Card Management",
+      "item": [
+        {
+          "name": "Create Debit Card",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Card created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', true);",
+                  "    pm.expect(jsonData.data).to.have.property('cardId');",
+                  "    pm.expect(jsonData.data).to.have.property('type');",
+                  "    pm.expect(jsonData.data).to.have.property('limit');",
+                  "    pm.expect(jsonData.data).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test(\"Save card ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.isSuccess && jsonData.data.cardId) {",
+                  "        pm.collectionVariables.set('card_id', jsonData.data.cardId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"debit\",\n  \"limit\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/card",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "card"]
+            },
+            "description": "Create a debit card for an existing account.\n\nCard Types:\n- debit\n- credit\n- prepaid\n\nLimit: Positive number representing spending/credit limit"
+          }
+        },
+        {
+          "name": "Create Credit Card",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Credit card created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.type).to.eql('credit');",
+                  "    pm.expect(jsonData.data.limit).to.eql(10000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"credit\",\n  \"limit\": 10000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/card",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "card"]
+            },
+            "description": "Example of creating a credit card with higher limit"
+          }
+        }
+      ],
+      "description": "Card creation and management for bank accounts"
+    },
+    {
+      "name": "4. Transfer Management",
+      "item": [
+        {
+          "name": "Create Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Transfer completed\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', true);",
+                  "    pm.expect(jsonData.data).to.have.property('transactionId');",
+                  "    pm.expect(jsonData.data).to.have.property('from');",
+                  "    pm.expect(jsonData.data).to.have.property('to');",
+                  "    pm.expect(jsonData.data).to.have.property('amount');",
+                  "    pm.expect(jsonData.data).to.have.property('currency');",
+                  "    pm.expect(jsonData.data).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test(\"Save transaction ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.isSuccess && jsonData.data.transactionId) {",
+                  "        pm.collectionVariables.set('transaction_id', jsonData.data.transactionId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"fromAccountId\": \"{{account_id}}\",\n  \"toAccountId\": \"acc_789012345\",\n  \"amount\": 250.50,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/transfer",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "transfer"]
+            },
+            "description": "Transfer funds between accounts. Sender account must belong to the user and have sufficient balance.\n\nFeatures:\n- Real-time WebSocket notifications\n- Balance validation\n- Transaction tracking\n- Multi-currency support"
+          }
+        },
+        {
+          "name": "Large Transfer Example",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Large transfer processed\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.amount).to.eql(5000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"fromAccountId\": \"{{account_id}}\",\n  \"toAccountId\": \"acc_987654321\",\n  \"amount\": 5000,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/transfer",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "transfer"]
+            },
+            "description": "Example of a larger transfer amount"
+          }
+        }
+      ],
+      "description": "Fund transfers between accounts with real-time notifications"
+    },
+    {
+      "name": "5. Balance Management",
+      "item": [
+        {
+          "name": "Get Account Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance retrieved successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', true);",
+                  "    pm.expect(jsonData.data).to.have.property('accountId');",
+                  "    pm.expect(jsonData.data).to.have.property('balance');",
+                  "    pm.expect(jsonData.data).to.have.property('currency');",
+                  "    pm.expect(jsonData.data).to.have.property('lastUpdated');",
+                  "});",
+                  "",
+                  "pm.test(\"Balance is numeric\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.balance).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/balance/{{account_id}}?userId={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "balance", "{{account_id}}"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "description": "User ID for account ownership verification"
+                }
+              ]
+            },
+            "description": "Get the current balance for an account. Account must belong to the specified user.\n\nFeatures:\n- Real-time balance updates\n- WebSocket notifications\n- Multi-currency support\n- Automatic local cache update"
+          }
+        },
+        {
+          "name": "Get Balance - Different Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Different account balance\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.accountId).to.eql('acc_example123');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/balance/acc_example123?userId={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "balance", "acc_example123"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}"
+                }
+              ]
+            },
+            "description": "Example of checking balance for a different account ID"
+          }
+        }
+      ],
+      "description": "Account balance retrieval with real-time updates"
+    },
+    {
+      "name": "6. Error Scenarios",
+      "item": [
+        {
+          "name": "Invalid User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 or 404\", function () {",
+                  "    pm.expect([400, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message present\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isSuccess', false);",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"invalid_user_id\",\n  \"type\": \"checking\",\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/account",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "account"]
+            },
+            "description": "Test error handling with invalid user ID"
+          }
+        },
+        {
+          "name": "Insufficient Balance Transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Insufficient balance error\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.include('Insufficient balance');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"fromAccountId\": \"{{account_id}}\",\n  \"toAccountId\": \"acc_789012345\",\n  \"amount\": 999999,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/transfer",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "transfer"]
+            },
+            "description": "Test insufficient balance error handling"
+          }
+        },
+        {
+          "name": "Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_version}}/holobank/account",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "holobank", "account"]
+            },
+            "description": "Test validation error with missing required fields"
+          }
+        }
+      ],
+      "description": "Error scenarios and validation testing"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set timestamp for requests",
+          "pm.globals.set('timestamp', Date.now());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test for response time",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "// Global test for JSON response",
+          "pm.test('Response is JSON', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('json');",
+          "});"
+        ]
+      }
+    }
+  ]
+}
