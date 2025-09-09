@@ -53,7 +53,7 @@ class HolobankService {
   constructor(config: HolobankConfig) {
     this.apiKey = config.apiKey
     this.axiosInstance = axios.create({
-      baseURL: config.baseURL || 'https://api.holobank.com',
+      baseURL: config.baseURL || 'https://sandbox.holobank.net/v1',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ class HolobankService {
 // Export singleton instance
 const holobankService = new HolobankService({
   apiKey: process.env.HOLOBANK_API_KEY || '',
-  baseURL: process.env.HOLOBANK_BASE_URL || 'https://api.holobank.com'
+  baseURL: process.env.HOLOBANK_API || 'https://sandbox.holobank.net/v1'
 })
 
 export default holobankService
