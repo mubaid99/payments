@@ -11,19 +11,19 @@ export const createQRPayment = async (req: Request, res: Response) => {
   try {
     // ✅ Validate request body against DTO
     const error = requestValidator(createQRPaymentValidator, req.body)
-    if (error) return res.badRequest({ err: error })
+    if (error) return (res as any).badRequest({ err: error })
 
     const { blockchain, coinName, clientId, amount, toAddress, contract } = req.body
 
     // ✅ Validate addresses based on blockchain
     if (blockchain === 'ethereum' || blockchain === 'bsc'  || blockchain === 'sepolia' ||  blockchain === 'polygon') {
-      if (!isEvmAddress(toAddress)) return res.badRequest({ err: 'Invalid EVM address' })
-      if (contract && !isEvmAddress(contract)) return res.badRequest({ err: 'Invalid ERC20 contract address' })
+      if (!isEvmAddress(toAddress)) return (res as any).badRequest({ err: 'Invalid EVM address' })
+      if (contract && !isEvmAddress(contract)) return (res as any).badRequest({ err: 'Invalid ERC20 contract address' })
     } else if (blockchain === 'tron') {
-      if (!isTronAddress(toAddress)) return res.badRequest({ err: 'Invalid TRON address' })
-      if (contract && !isTronAddress(contract)) return res.badRequest({ err: 'Invalid TRC20 contract address' })
+      if (!isTronAddress(toAddress)) return (res as any).badRequest({ err: 'Invalid TRON address' })
+      if (contract && !isTronAddress(contract)) return (res as any).badRequest({ err: 'Invalid TRC20 contract address' })
     } else {
-      return res.badRequest({ err: 'Unsupported blockchain' })
+      return (res as any).badRequest({ err: 'Unsupported blockchain' })
     }
 
     // ✅ Save to DB
@@ -53,7 +53,7 @@ export const createQRPayment = async (req: Request, res: Response) => {
       width: 512,
     })
 
-    return res.success({
+    return (res as any).success({
       data: {
         qrImage: qrImageBase64,
         qrURI: uri,
@@ -70,6 +70,6 @@ export const createQRPayment = async (req: Request, res: Response) => {
     })
   } catch (err: any) {
     Logger.error(err.message)
-    return res.internalServerError({ err: err.message })
+    return (res as any).internalServerError({ err: err.message })
   }
 }

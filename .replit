@@ -5,3 +5,31 @@ expertMode = true
 [nix]
 channel = "stable-25_05"
 packages = ["mongodb"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend Server"
+
+[[workflows.workflow]]
+name = "Backend Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=development PORT=3000 DB_CONNECTION_STRING=mongodb://localhost:27017/crondex BACKEND_HOST_URL=http://localhost:3000 JWT_SECRET=dev-jwt-secret-key JWT_EXPIRY=24h CRYPTO_SECRET_KEY=dev-crypto-secret BCRYPT_SALTROUND=10 BRAND_NAME=Crondex HOLOBANK_API_KEY=placeholder-api-key npm run dev"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[ports]]
+localPort = 3000
+externalPort = 3000

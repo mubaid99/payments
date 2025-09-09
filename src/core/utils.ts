@@ -9,165 +9,165 @@ import constant from './constants'
 import Web3 from 'web3'
 
 export const FileExistsSync = (FilePath: string) => {
-	return fs.existsSync(`${FilePath}.js`) || fs.existsSync(`${FilePath}.ts`)
+        return fs.existsSync(`${FilePath}.js`) || fs.existsSync(`${FilePath}.ts`)
 }
 
 export function Wrap(controller: CallableFunction) {
-	
-	return async (req: Request, res: Response, next: NextFunction) => {
-		try {
-			await controller(req, res, next)
-		} catch (error) {
-			Logger.error(error)
-			return res.internalServerError({ error: error?.message })
-		}
-	}
+        
+        return async (req: Request, res: Response, next: NextFunction) => {
+                try {
+                        await controller(req, res, next)
+                } catch (error) {
+                        Logger.error(error)
+                        return (res as any).internalServerError({ error: error?.message })
+                }
+        }
 }
 
 export function GenerateCallableMessages(_Messages: any) {
-	const Messages = {}
+        const Messages = {}
 
-	;(function _GenerateCallableMessages(target, values: any) {
-		try {
-			for (const key in values) {
-				if (typeof values[key] === 'string') {
-					target[key] = (params: any) => {
-						return ejs.render(values[key], params)
-					}
-				} else {
-					target[key] = {}
-					_GenerateCallableMessages(target[key], values[key])
-				}
-			}
-		} catch (error) {
-			Logger.error(error)
-		}
-	})(Messages, _Messages)
+        ;(function _GenerateCallableMessages(target, values: any) {
+                try {
+                        for (const key in values) {
+                                if (typeof values[key] === 'string') {
+                                        target[key] = (params: any) => {
+                                                return ejs.render(values[key], params)
+                                        }
+                                } else {
+                                        target[key] = {}
+                                        _GenerateCallableMessages(target[key], values[key])
+                                }
+                        }
+                } catch (error) {
+                        Logger.error(error)
+                }
+        })(Messages, _Messages)
 
-	return Messages
+        return Messages
 }
 
 export function GenerateAuthToken(payload): string {
-	const token = jwt.sign(payload, App.Config.JWT.SECRET, { expiresIn: App.Config.JWT.EXPIRY })
-	return token
+        const token = jwt.sign(payload, App.Config.JWT.SECRET, { expiresIn: App.Config.JWT.EXPIRY })
+        return token
 }
 
 export function GenerateRandomString(length: number): string {
-	const byteLength = Math.ceil(length / 2) // Each byte represents two characters in hexadecimal form.
-	const randomBytes = crypto.randomBytes(byteLength)
-	return randomBytes.toString('hex').slice(0, length)
+        const byteLength = Math.ceil(length / 2) // Each byte represents two characters in hexadecimal form.
+        const randomBytes = crypto.randomBytes(byteLength)
+        return randomBytes.toString('hex').slice(0, length)
 }
 
 export const axiosConfig = ({ url, method, data, headers }: IAxiosConfig) => {
-	const obj = {
-		url,
-		method,
-		...(data ? { data } : {}),
-		headers,
-	}
+        const obj = {
+                url,
+                method,
+                ...(data ? { data } : {}),
+                headers,
+        }
 
-	return obj
+        return obj
 }
 
 export function isObject(value: any) {
-	return Object.prototype.toString.call(value) === '[object Object]'
+        return Object.prototype.toString.call(value) === '[object Object]'
 }
 
 export function ImageValidator(file: { mimetype: string; size: number }, language) {
-	const { mimetype, size } = file
-	const validMimetypes = constant.IMAGE.MIME_TYPES
-	const validSizeInMb = constant.IMAGE.SIZE_IN_MB
-	if (!validMimetypes.includes(mimetype)) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidImageType({
-				allowedTypes: validMimetypes,
-			}),
-		}
-	}
-	if (size / (1024 * 1024) > validSizeInMb) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidImageSize({
-				allowedSizeInMb: validSizeInMb,
-			}),
-		}
-	}
-	return {
-		isSuccess: true,
-	}
+        const { mimetype, size } = file
+        const validMimetypes = constant.IMAGE.MIME_TYPES
+        const validSizeInMb = constant.IMAGE.SIZE_IN_MB
+        if (!validMimetypes.includes(mimetype)) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidImageType({
+                                allowedTypes: validMimetypes,
+                        }),
+                }
+        }
+        if (size / (1024 * 1024) > validSizeInMb) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidImageSize({
+                                allowedSizeInMb: validSizeInMb,
+                        }),
+                }
+        }
+        return {
+                isSuccess: true,
+        }
 }
 
 export function PdfValidator(file: { mimetype: string; size: number }, language) {
-	const { mimetype, size } = file
-	const validMimetypes = constant.PDF.MIME_TYPES
-	const validSizeInMb = constant.PDF.SIZE_IN_MB
-	if (!validMimetypes.includes(mimetype)) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidDocumentType({
-				allowedTypes: validMimetypes,
-			}),
-		}
-	}
-	if (size / (1024 * 1024) > validSizeInMb) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidDocumentSize({
-				allowedSizeInMb: validSizeInMb,
-			}),
-		}
-	}
-	return {
-		isSuccess: true,
-	}
+        const { mimetype, size } = file
+        const validMimetypes = constant.PDF.MIME_TYPES
+        const validSizeInMb = constant.PDF.SIZE_IN_MB
+        if (!validMimetypes.includes(mimetype)) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidDocumentType({
+                                allowedTypes: validMimetypes,
+                        }),
+                }
+        }
+        if (size / (1024 * 1024) > validSizeInMb) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidDocumentSize({
+                                allowedSizeInMb: validSizeInMb,
+                        }),
+                }
+        }
+        return {
+                isSuccess: true,
+        }
 }
 
 export function PdfImageValidator(file: { mimetype: string; size: number }, language) {
-	const { mimetype, size } = file
-	const validMimetypes = constant.PDF_IMAGE.MIME_TYPES
-	const validSizeInMb = constant.PDF_IMAGE.SIZE_IN_MB
-	if (!validMimetypes.includes(mimetype)) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidDocumentType({
-				allowedTypes: validMimetypes,
-			}),
-		}
-	}
-	if (size / (1024 * 1024) > validSizeInMb) {
-		return {
-			isSuccess: false,
-			message: App.Message.Error.InvalidDocumentSize({
-				allowedSizeInMb: validSizeInMb,
-			}),
-		}
-	}
-	return {
-		isSuccess: true,
-	}
+        const { mimetype, size } = file
+        const validMimetypes = constant.PDF_IMAGE.MIME_TYPES
+        const validSizeInMb = constant.PDF_IMAGE.SIZE_IN_MB
+        if (!validMimetypes.includes(mimetype)) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidDocumentType({
+                                allowedTypes: validMimetypes,
+                        }),
+                }
+        }
+        if (size / (1024 * 1024) > validSizeInMb) {
+                return {
+                        isSuccess: false,
+                        message: App.Message.Error.InvalidDocumentSize({
+                                allowedSizeInMb: validSizeInMb,
+                        }),
+                }
+        }
+        return {
+                isSuccess: true,
+        }
 }
 
 export function calculatePercentage(total: number, value: number) {
-	return (value / total) * 100
+        return (value / total) * 100
 }
 
 export function calculateFee(feeInPercent: number, value: number) {
-	return parseInt(((feeInPercent / 100) * value).toString())
+        return parseInt(((feeInPercent / 100) * value).toString())
 }
 
 export function weiToEther(value: number) {
-	return Number(Web3.utils.fromWei(value, 'ether'))
+        return Number(Web3.utils.fromWei(value, 'ether'))
 }
 
 export function decimalToMatic(value: number) {
-	const decimalValue = parseInt('1' + '0'.repeat(constant.MATIC_DECIMALS))
-	return parseInt((value * decimalValue).toString())
+        const decimalValue = parseInt('1' + '0'.repeat(constant.MATIC_DECIMALS))
+        return parseInt((value * decimalValue).toString())
 }
 
 export function maticToDecimal(value: number) {
-	const decimalValue = parseInt('1' + '0'.repeat(constant.MATIC_DECIMALS))
-	return (value / decimalValue).toFixed(constant.MATIC_DECIMALS)
+        const decimalValue = parseInt('1' + '0'.repeat(constant.MATIC_DECIMALS))
+        return (value / decimalValue).toFixed(constant.MATIC_DECIMALS)
 }
 
 export function aggregateDataByFormat(

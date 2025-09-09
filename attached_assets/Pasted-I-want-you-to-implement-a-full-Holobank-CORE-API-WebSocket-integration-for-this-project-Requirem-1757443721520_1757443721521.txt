@@ -1,0 +1,97 @@
+I want you to implement a full Holobank CORE API + WebSocket integration for this project.
+
+Requirements:
+
+Holobank REST API Wrapper
+
+Create a services/holobank.service.ts (or .js) file.
+
+Use axios for REST calls.
+
+Every request should include headers:
+
+x-api-key (from process.env.HOLOBANK_API_KEY)
+
+x-ref-id (generate UUID per request).
+
+Implement methods:
+
+uploadKYC(userId, file) → calls /kyc/upload
+
+updateKYCStatus(userId, status) → calls /kyc/status/:id
+
+createAccount(userId, type, currency) → calls /accounts
+
+getAccounts(userId) → calls /accounts/:id
+
+createCard(accountId, type, limit) → calls /cards
+
+transfer(from, to, amount, currency) → calls /transfers
+
+getBalance(accountId) → calls /accounts/:id/balance
+
+Update User Schema
+
+Extend the provided User model with a bankDetails object:
+
+bankDetails: {
+  holobankUserId?: string;
+  accounts: { accountId: string; type: string; currency: string; balance?: number }[];
+  cards: { cardId: string; type: string; limit: number; status: string }[];
+  kycStatus?: string;
+}
+
+
+Make sure it persists in MongoDB.
+
+Controllers (controllers/holobank.controller.ts)
+
+POST /holobank/kyc → upload KYC, update user with status.
+
+POST /holobank/account → create account, store in user.
+
+POST /holobank/card → create card, attach to account.
+
+POST /holobank/transfer → transfer between accounts.
+
+GET /holobank/balance/:accountId → fetch and update balance.
+
+WebSocket Integration
+
+Use socket.io.
+
+Implement events:
+
+holobank:transactions → stream real-time transaction updates.
+
+holobank:balanceUpdate → push live balance changes.
+
+Whenever a transfer occurs, broadcast events to all connected clients for that user.
+
+End-to-End Flow
+
+A new user signs up → upload KYC → create account → request card.
+
+User can transfer funds, check balances, and get real-time socket notifications.
+
+All Holobank details are stored inside the bankDetails field of User.
+
+Extras
+
+Add error handling middleware for API failures.
+
+Use .env for HOLOBANK_API_KEY.
+
+Provide example usage in routes/holobank.routes.ts.
+
+Deliverables:
+
+services/holobank.service.ts
+
+controllers/holobank.controller.ts
+
+routes/holobank.routes.ts
+
+Updated User schema with bankDetails
+
+WebSocket event handlers in sockets/holobank.socket.ts
