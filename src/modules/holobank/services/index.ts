@@ -78,9 +78,6 @@ class HolobankService {
     )
   }
 
-  /**
-   * Upload KYC documents for a user
-   */
   async uploadKYC(userId: string, file: any): Promise<KYCUploadResponse> {
     try {
       const formData = new FormData()
@@ -100,15 +97,11 @@ class HolobankService {
     }
   }
 
-  /**
-   * Update KYC status for a user
-   */
   async updateKYCStatus(userId: string, status: string): Promise<any> {
     try {
       const response: AxiosResponse = await this.axiosInstance.put(`/kyc/status/${userId}`, {
         status
       })
-
       return response.data
     } catch (error) {
       Logger.error('KYC Status update failed:', error)
@@ -116,9 +109,6 @@ class HolobankService {
     }
   }
 
-  /**
-   * Create a new account for a user
-   */
   async createAccount(userId: string, type: string, currency: string): Promise<AccountResponse> {
     try {
       const response: AxiosResponse = await this.axiosInstance.post('/accounts', {
@@ -126,7 +116,6 @@ class HolobankService {
         type,
         currency
       })
-
       return response.data
     } catch (error) {
       Logger.error('Account creation failed:', error)
@@ -134,9 +123,6 @@ class HolobankService {
     }
   }
 
-  /**
-   * Get accounts for a user
-   */
   async getAccounts(userId: string): Promise<AccountResponse[]> {
     try {
       const response: AxiosResponse = await this.axiosInstance.get(`/accounts/${userId}`)
@@ -147,9 +133,6 @@ class HolobankService {
     }
   }
 
-  /**
-   * Create a card for an account
-   */
   async createCard(accountId: string, type: string, limit: number): Promise<CardResponse> {
     try {
       const response: AxiosResponse = await this.axiosInstance.post('/cards', {
@@ -157,7 +140,6 @@ class HolobankService {
         type,
         limit
       })
-
       return response.data
     } catch (error) {
       Logger.error('Card creation failed:', error)
@@ -165,9 +147,6 @@ class HolobankService {
     }
   }
 
-  /**
-   * Transfer funds between accounts
-   */
   async transfer(from: string, to: string, amount: number, currency: string): Promise<TransferResponse> {
     try {
       const response: AxiosResponse = await this.axiosInstance.post('/transfers', {
@@ -176,7 +155,6 @@ class HolobankService {
         amount,
         currency
       })
-
       return response.data
     } catch (error) {
       Logger.error('Transfer failed:', error)
@@ -184,9 +162,6 @@ class HolobankService {
     }
   }
 
-  /**
-   * Get balance for an account
-   */
   async getBalance(accountId: string): Promise<BalanceResponse> {
     try {
       const response: AxiosResponse = await this.axiosInstance.get(`/accounts/${accountId}/balance`)
@@ -205,4 +180,3 @@ const holobankService = new HolobankService({
 })
 
 export default holobankService
-export { HolobankService }
