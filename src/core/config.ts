@@ -66,6 +66,7 @@ export interface ConfigInterface {
 		API_KEY: string
 	}
 	FIREBASE_SECRET_NAME: string
+	AUTH_API_URL: string
 
 }
 

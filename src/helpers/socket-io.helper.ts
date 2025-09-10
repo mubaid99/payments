@@ -1,10 +1,10 @@
 import { Server } from "socket.io"
 import { Server as HttpServer } from "http"
-import HolobankSocketHandler from '../sockets/holobank.socket'
+// import HolobankSocketHandler from '../sockets/holobank.socket'
 import '@core/declarations'
 
 let io: Server
-let holobankHandler: HolobankSocketHandler
+// let holobankHandler: HolobankSocketHandler
 
 /**
  * Initialize Socket.IO on the given HTTP server
@@ -21,8 +21,8 @@ export default function initializeSocket(httpServer: HttpServer) {
   global.io = io
 
   // Initialize Holobank socket handlers
-  holobankHandler = new HolobankSocketHandler(io)
-  holobankHandler.initializeHandlers()
+  // holobankHandler = new HolobankSocketHandler(io)
+  // holobankHandler.initializeHandlers()
 
   io.on("connection", (socket) => {
     Logger.info(`🔌 Client connected: ${socket.id}`)
@@ -48,9 +48,9 @@ export function getIO(): Server {
 /**
  * Get the Holobank socket handler instance
  */
-export function getHolobankHandler(): HolobankSocketHandler {
-  if (!holobankHandler) {
-    throw new Error("❌ Holobank socket handler not initialized!")
-  }
-  return holobankHandler
-}
+// export function getHolobankHandler(): HolobankSocketHandler {
+//   if (!holobankHandler) {
+//     throw new Error("❌ Holobank socket handler not initialized!")
+//   }
+//   return holobankHandler
+// }

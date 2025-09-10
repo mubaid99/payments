@@ -67,7 +67,8 @@ export default (): ConfigInterface => {
 		COIN_API:{
 			API_KEY:process.env.COINAPI_API_KEY
 		},
-		FIREBASE_SECRET_NAME: process.env.FIREBASE_SECRET_NAME
+		FIREBASE_SECRET_NAME: process.env.FIREBASE_SECRET_NAME,
+		AUTH_API_URL: process.env.AUTH_API_URL
 
 	}
 }

@@ -1,10 +1,12 @@
 import express from 'express'
 import Controller from '../controllers'
 import { Wrap } from '@core/utils'
+import { authorize } from '@helpers/authorizer'
 
 const router = express.Router()
 
 // KYC routes
+router.use(authorize)
 router.post('/kyc', Wrap(Controller.uploadKYC))
 
 // Account routes
