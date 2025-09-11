@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
+import FormData from 'form-data'
 import { v4 as uuidv4 } from 'uuid'
 import '@core/declarations'
 
@@ -179,7 +180,7 @@ class HolobankService {
 
       const response: AxiosResponse = await this.axiosInstance.post('/api/kyc/v1/kyc/private', formData, {
         headers: {
-          // Don't set Content-Type manually - let axios handle multipart boundaries
+          ...formData.getHeaders(),
           'x-ref-id': kycData.userReferenceId
         }
       })
