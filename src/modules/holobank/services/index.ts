@@ -109,6 +109,11 @@ class HolobankService {
   private apiKey: string
 
   constructor(config: HolobankConfig) {
+    // Fail-fast configuration validation
+    if (!config.apiKey || config.apiKey.trim() === '') {
+      throw new Error('HOLOBANK_API_KEY is required but not provided in environment configuration')
+    }
+    
     this.apiKey = config.apiKey
     this.axiosInstance = axios.create({
       baseURL: config.baseURL || 'https://sandbox.holobank.net',
@@ -211,9 +216,22 @@ class HolobankService {
         }
       })
 
+      // Accept any 2xx status code (200-299) as success
+      const isSuccess = response.status >= 200 && response.status < 300
+      
+      // Handle 201 responses that may return ID in response body or Location header
+      let kycId = response.data?.kycId || response.data?.id || kycData.userReferenceId
+      if (response.status === 201 && response.headers?.location) {
+        // Extract ID from Location header if present (e.g., "/api/kyc/v1/kyc/12345")
+        const locationMatch = response.headers.location.match(/\/([^/]+)$/) 
+        if (locationMatch) {
+          kycId = locationMatch[1]
+        }
+      }
+      
       return {
-        success: response.status === 204 || response.status === 200,
-        kycId: response.data?.kycId || response.data?.id || kycData.userReferenceId,
+        success: isSuccess,
+        kycId: kycId,
         message: response.data?.message || 'KYC submitted successfully',
         status: response.data?.status || 'submitted'
       }
@@ -229,7 +247,8 @@ class HolobankService {
 
   async updateKYCStatus(userId: string, status: string): Promise<any> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.put(`/kyc/status/${userId}`, {
+      // Fix API path to include proper versioned prefix consistent with other endpoints
+      const response: AxiosResponse = await this.axiosInstance.put(`/api/kyc/v1/kyc/status/${userId}`, {
         status
       })
       return response.data
