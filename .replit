@@ -33,7 +33,3 @@ waitForPort = 3000
 [[ports]]
 localPort = 3000
 externalPort = 3000
-
-[[ports]]
-localPort = 41623
-externalPort = 80
