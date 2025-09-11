@@ -4,14 +4,19 @@ import { NextFunction, Request, Response } from 'express'
 export const authorize = async (req: Request, res: Response, next: NextFunction) => {
         try {
                 const token = req.headers.authorization?.split(' ')[1]
-                // const
-                const response = await axios.get(`${App.Config.AUTH_API_URL}`, {
+                
+                // Use environment variable directly for now
+                const AUTH_API_URL = process.env.AUTH_API_URL || 'http://localhost:3000/api/v1/auth/verify'
+                
+                const response = await axios.get(AUTH_API_URL, {
                         headers: {
                                 Authorization: `Bearer ${token}`,
                         },
                 })
                 
-                const user = await App.Models.User.findOne({
+                // Import User model directly
+                const { User } = await import('@models/user')
+                const user = await User.findOne({
                         _id: response?.data?.data?._id,
                 })
                 
@@ -22,7 +27,7 @@ export const authorize = async (req: Request, res: Response, next: NextFunction)
                 (req as any).user = user
                 return next()
         } catch (error) {
-                Logger.error(error)
+                console.error('Authorization error:', error)
                 return (res as any).unauthorized()
         }
 }
