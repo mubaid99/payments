@@ -9,8 +9,39 @@ interface HolobankConfig {
 
 interface KYCUploadResponse {
   success: boolean
-  kycId: string
-  status: string
+  kycId?: string
+  message?: string
+  status?: string
+}
+
+interface KYCData {
+  personalIdentificationNumber?: string
+  specialCode?: string
+  title: string
+  firstName: string
+  lastName: string
+  nationality: string
+  occupation: string
+  dateOfBirth: string
+  placeOfBirth: string
+  passportNumber?: string
+  passportIssuedBy?: string
+  passportIssueDate?: string
+  passportExpiryDate?: string
+  country: string
+  address: string
+  district: string
+  city: string
+  postalCode: string
+  isSameResidentialAddress: boolean
+  residentialCountry?: string
+  residentialAddress?: string
+  residentialDistrict?: string
+  residentialCity?: string
+  residentialPostalCode?: string
+  phoneNumber: string
+  email: string
+  userReferenceId: string
 }
 
 interface AccountResponse {
@@ -53,19 +84,17 @@ class HolobankService {
   constructor(config: HolobankConfig) {
     this.apiKey = config.apiKey
     this.axiosInstance = axios.create({
-      baseURL: config.baseURL || 'https://api.tap.company/v2',
+      baseURL: config.baseURL || 'https://sandbox.holobank.net',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
+        'Accept': 'application/json'
       }
     })
 
     // Add request interceptor to include headers
     this.axiosInstance.interceptors.request.use((config) => {
-      config.headers['x-api-key'] = this.apiKey
-      config.headers['x-ref-id'] = uuidv4()
+      config.headers['Authorization'] = `Bearer ${this.apiKey}`
       return config
     })
 
@@ -79,22 +108,94 @@ class HolobankService {
     )
   }
 
-  async uploadKYC(userId: string, file: any): Promise<KYCUploadResponse> {
+  async uploadKYC(kycData: KYCData, files?: any): Promise<KYCUploadResponse> {
     try {
       const formData = new FormData()
-      formData.append('userId', userId)
-      formData.append('document', file)
+      
+      // Add all required fields
+      formData.append('title', kycData.title)
+      formData.append('firstName', kycData.firstName)
+      formData.append('lastName', kycData.lastName)
+      formData.append('nationality', kycData.nationality)
+      formData.append('occupation', kycData.occupation)
+      formData.append('dateOfBirth', kycData.dateOfBirth)
+      formData.append('placeOfBirth', kycData.placeOfBirth)
+      formData.append('country', kycData.country)
+      formData.append('address', kycData.address)
+      formData.append('district', kycData.district)
+      formData.append('city', kycData.city)
+      formData.append('postalCode', kycData.postalCode)
+      formData.append('isSameResidentialAddress', kycData.isSameResidentialAddress.toString())
+      formData.append('phoneNumber', kycData.phoneNumber)
+      formData.append('email', kycData.email)
 
-      const response: AxiosResponse = await this.axiosInstance.post('/kyc/upload', formData, {
+      // Add optional fields if provided
+      if (kycData.personalIdentificationNumber) {
+        formData.append('personalIdentificationNumber', kycData.personalIdentificationNumber)
+      }
+      if (kycData.specialCode) {
+        formData.append('specialCode', kycData.specialCode)
+      }
+      if (kycData.passportNumber) {
+        formData.append('passportNumber', kycData.passportNumber)
+      }
+      if (kycData.passportIssuedBy) {
+        formData.append('passportIssuedBy', kycData.passportIssuedBy)
+      }
+      if (kycData.passportIssueDate) {
+        formData.append('passportIssueDate', kycData.passportIssueDate)
+      }
+      if (kycData.passportExpiryDate) {
+        formData.append('passportExpiryDate', kycData.passportExpiryDate)
+      }
+
+      // Add residential address if different
+      if (!kycData.isSameResidentialAddress) {
+        if (kycData.residentialCountry) formData.append('residentialCountry', kycData.residentialCountry)
+        if (kycData.residentialAddress) formData.append('residentialAddress', kycData.residentialAddress)
+        if (kycData.residentialDistrict) formData.append('residentialDistrict', kycData.residentialDistrict)
+        if (kycData.residentialCity) formData.append('residentialCity', kycData.residentialCity)
+        if (kycData.residentialPostalCode) formData.append('residentialPostalCode', kycData.residentialPostalCode)
+      }
+
+      // Add file uploads if provided
+      if (files) {
+        if (files.passportImage) {
+          formData.append('passportImage', files.passportImage)
+        }
+        if (files.nationalIdImage) {
+          formData.append('nationalIdImage', files.nationalIdImage)
+        }
+        if (files.passportSelfie) {
+          formData.append('passportSelfie', files.passportSelfie)
+        }
+        if (files.nationalIdSelfieImage) {
+          formData.append('nationalIdSelfieImage', files.nationalIdSelfieImage)
+        }
+        if (files.digitalSignature) {
+          formData.append('digitalSignature', files.digitalSignature)
+        }
+      }
+
+      const response: AxiosResponse = await this.axiosInstance.post('/api/kyc/v1/kyc/private', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'x-ref-id': kycData.userReferenceId
         }
       })
 
-      return response.data
+      return {
+        success: response.status === 204 || response.status === 200,
+        message: 'KYC submitted successfully',
+        status: 'submitted'
+      }
     } catch (error) {
       Logger.error('KYC Upload failed:', error)
-      throw error
+      return {
+        success: false,
+        message: error.response?.data?.message || 'KYC upload failed',
+        status: 'failed'
+      }
     }
   }
 
