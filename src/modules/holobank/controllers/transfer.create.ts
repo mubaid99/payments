@@ -11,14 +11,22 @@ import '@core/declarations'
  */
 export const createTransfer = async (req: Request, res: Response) => {
   try {
-    const { userId, fromAccountId, toAccountId, amount, currency } = req.body
-
-    if (!userId || !fromAccountId || !toAccountId || !amount || !currency) {
+    const { fromAccountId, toAccountId, amount, currency } = req.body
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
+      })
+    }
+    
+    if (!fromAccountId || !toAccountId || !amount || !currency) {
       return (res as any).badRequest({ 
         error: 'All transfer details are required' 
       })
     }
-
+    
+    const userId = authenticatedUser._id.toString()
     const user = await User.findById(userId)
     if (!user) {
       return (res as any).notFound({ 
@@ -71,7 +79,7 @@ export const createTransfer = async (req: Request, res: Response) => {
       toAccountId,
       amount,
       currency
-    })
+    }, user.bankDetails.userReferenceId)
 
     if (!transferResponse.success) {
       // Update transaction status to failed

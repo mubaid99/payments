@@ -9,14 +9,22 @@ import '@core/declarations'
  */
 export const createCard = async (req: Request, res: Response) => {
   try {
-    const { userId, accountId, type, limit } = req.body
-
-    if (!userId || !accountId || !type || !limit) {
-      return (res as any).badRequest({ 
-        error: 'User ID, account ID, card type, and limit are required' 
+    const { accountId, type, limit } = req.body
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
       })
     }
-
+    
+    if (!accountId || !type || !limit) {
+      return (res as any).badRequest({ 
+        error: 'Account ID, card type, and limit are required' 
+      })
+    }
+    
+    const userId = authenticatedUser._id.toString()
     const user = await User.findById(userId)
     if (!user) {
       return (res as any).notFound({ 
@@ -24,8 +32,14 @@ export const createCard = async (req: Request, res: Response) => {
       })
     }
 
+    if (!user.bankDetails?.userReferenceId) {
+      return (res as any).badRequest({ 
+        error: 'Core user must be created first' 
+      })
+    }
+
     // Check if account exists
-    const accountExists = user.bankDetails?.accounts.find(
+    const accountExists = user.bankDetails.accounts.find(
       account => account.accountId === accountId
     )
 
@@ -35,13 +49,21 @@ export const createCard = async (req: Request, res: Response) => {
       })
     }
 
-    // Create card with Holobank using new API structure
+    // Only REAP and JDB accounts can have cards
+    if (!['REAP', 'JDB'].includes(accountExists.type)) {
+      return (res as any).badRequest({ 
+        error: 'Cards can only be created for REAP and JDB accounts' 
+      })
+    }
+
+    // Create card with Holobank using productId 9
     const cardResponse = await holobankService.createCard({
       userId,
       accountId,
       type,
-      limit
-    })
+      limit,
+      productId: 9
+    }, user.bankDetails.userReferenceId)
 
     if (!cardResponse.success) {
       return (res as any).badRequest({ 

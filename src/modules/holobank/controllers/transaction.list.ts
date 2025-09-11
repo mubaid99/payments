@@ -8,13 +8,16 @@ import '@core/declarations'
  */
 export const getTransactions = async (req: Request, res: Response) => {
   try {
-    const { userId, status, type, page = 1, limit = 10 } = req.query
-
-    if (!userId) {
-      return (res as any).badRequest({ 
-        error: 'User ID is required' 
+    const { status, type, page = 1, limit = 10 } = req.query
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
       })
     }
+    
+    const userId = authenticatedUser._id.toString()
 
     // Build query filter
     const filter: any = { userId }
@@ -70,13 +73,15 @@ export const getTransactions = async (req: Request, res: Response) => {
 export const getTransactionById = async (req: Request, res: Response) => {
   try {
     const { transactionId } = req.params
-    const { userId } = req.query
-
-    if (!userId) {
-      return (res as any).badRequest({ 
-        error: 'User ID is required' 
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
       })
     }
+    
+    const userId = authenticatedUser._id.toString()
 
     const transaction = await Transaction.findOne({
       $or: [

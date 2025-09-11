@@ -10,7 +10,6 @@ import '@core/declarations'
 export const uploadKYC = async (req: Request, res: Response) => {
   try {
     const {
-      userId,
       personalIdentificationNumber,
       specialCode,
       title,
@@ -38,10 +37,17 @@ export const uploadKYC = async (req: Request, res: Response) => {
       phoneNumber,
       email
     } = req.body
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
+      })
+    }
 
     // Validate required fields according to Holobank API
     const requiredFields = [
-      'userId', 'title', 'firstName', 'lastName', 'nationality', 
+      'title', 'firstName', 'lastName', 'nationality', 
       'occupation', 'dateOfBirth', 'placeOfBirth', 'country', 
       'address', 'district', 'city', 'postalCode', 'phoneNumber', 'email'
     ]
@@ -80,6 +86,21 @@ export const uploadKYC = async (req: Request, res: Response) => {
       })
     }
 
+    // Get user and validate
+    const userId = authenticatedUser._id.toString()
+    const user = await User.findById(userId)
+    if (!user) {
+      return (res as any).notFound({ 
+        error: 'User not found' 
+      })
+    }
+
+    if (!user.bankDetails?.userReferenceId) {
+      return (res as any).badRequest({ 
+        error: 'Core user must be created first' 
+      })
+    }
+
     // Prepare KYC data in Holobank format
     const kycData = {
       personalIdentificationNumber,
@@ -108,7 +129,7 @@ export const uploadKYC = async (req: Request, res: Response) => {
       residentialPostalCode,
       phoneNumber,
       email,
-      userReferenceId: userId
+      userReferenceId: user.bankDetails!.userReferenceId!
     }
 
     // Upload KYC to Holobank
@@ -120,31 +141,15 @@ export const uploadKYC = async (req: Request, res: Response) => {
       })
     }
 
-    // Update user with KYC status
-    const user = await User.findById(userId)
-    if (!user) {
-      return (res as any).notFound({ 
-        error: 'User not found' 
-      })
-    }
-
-    // Initialize bankDetails if it doesn't exist
-    if (!user.bankDetails) {
-      user.bankDetails = {
-        accounts: [],
-        cards: [],
-        kycStatus: 'pending'
-      }
-    }
-
-    user.bankDetails.holobankUserId = userId // Use userId as reference
+    // Update user's KYC status
     user.bankDetails.kycStatus = kycResponse.status || 'submitted'
+    user.bankDetails.kycId = kycResponse.kycId
 
     await user.save()
 
     return (res as any).success({
       data: {
-        userReferenceId: userId,
+        kycId: kycResponse.kycId,
         status: kycResponse.status || 'submitted',
         message: kycResponse.message || 'KYC documents uploaded successfully'
       }

@@ -8,6 +8,17 @@ interface HolobankConfig {
   baseURL: string
 }
 
+interface UserCreationResponse {
+  success: boolean
+  userId?: string
+  platformAccountId?: string
+  message?: string
+}
+
+interface UserCreationData {
+  userReferenceId: string
+}
+
 interface KYCUploadResponse {
   success: boolean
   kycId?: string
@@ -56,8 +67,33 @@ interface AccountResponse {
 
 interface AccountData {
   userId: string
-  type: 'checking' | 'savings' | 'business'
-  currency: 'USD' | 'EUR' | 'GBP'
+  type: 'PLATFORM' | 'REAP' | 'JDB'
+  currency: 'USDC' | 'USD' | 'EUR' | 'GBP'
+}
+
+interface DepositInfoResponse {
+  success: boolean
+  walletAddress?: string
+  currency?: string
+  network?: string
+  message?: string
+}
+
+interface KYCListResponse {
+  success: boolean
+  kycs?: Array<{
+    id: string
+    status: string
+    userId: string
+  }>
+  message?: string
+}
+
+interface KYCStatusUpdateResponse {
+  success: boolean
+  kycId: string
+  status: string
+  message?: string
 }
 
 interface CardResponse {
@@ -74,6 +110,7 @@ interface CardData {
   accountId: string
   type: 'debit' | 'credit' | 'prepaid'
   limit: number
+  productId: number
 }
 
 interface TransferResponse {
@@ -124,9 +161,10 @@ class HolobankService {
       }
     })
 
-    // Add request interceptor to include headers
+    // Add request interceptor to include Holobank headers
     this.axiosInstance.interceptors.request.use((config) => {
-      config.headers['Authorization'] = `Bearer ${this.apiKey}`
+      config.headers['x-apy-key'] = this.apiKey
+      // x-ref-id will be set per request as it's user-specific
       return config
     })
 
@@ -138,6 +176,30 @@ class HolobankService {
         throw error
       }
     )
+  }
+
+  async createCoreUser(userData: UserCreationData): Promise<UserCreationResponse> {
+    try {
+      const response: AxiosResponse = await this.axiosInstance.post('/api/core/v1/users', {}, {
+        headers: {
+          'x-ref-id': userData.userReferenceId
+        }
+      })
+
+      // Core user creation auto-creates PLATFORM account with USDC
+      return {
+        success: true,
+        userId: response.data.userId || response.data.id,
+        platformAccountId: response.data.platformAccountId || response.data.accounts?.[0]?.id,
+        message: 'Core user and PLATFORM account created successfully'
+      }
+    } catch (error) {
+      Logger.error('Core user creation failed:', error)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Core user creation failed'
+      }
+    }
   }
 
   async uploadKYC(kycData: KYCData, files?: any): Promise<KYCUploadResponse> {
@@ -209,7 +271,7 @@ class HolobankService {
         }
       }
 
-      const response: AxiosResponse = await this.axiosInstance.post('/api/kyc/v1/kyc/private', formData, {
+      const response: AxiosResponse = await this.axiosInstance.post('/api/kyc/v1/kyc', formData, {
         headers: {
           ...formData.getHeaders(),
           'x-ref-id': kycData.userReferenceId
@@ -245,26 +307,66 @@ class HolobankService {
     }
   }
 
-  async updateKYCStatus(userId: string, status: string): Promise<any> {
+  async listKYCs(userReferenceId: string): Promise<KYCListResponse> {
     try {
-      // Fix API path to include proper versioned prefix consistent with other endpoints
-      const response: AxiosResponse = await this.axiosInstance.put(`/api/kyc/v1/kyc/status/${userId}`, {
-        status
+      const response: AxiosResponse = await this.axiosInstance.get('/api/kyc/v1/kyc', {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
       })
-      return response.data
+      
+      return {
+        success: true,
+        kycs: response.data.kycs || response.data || [],
+        message: 'KYCs retrieved successfully'
+      }
     } catch (error) {
-      Logger.error('KYC Status update failed:', error)
-      throw error
+      Logger.error('List KYCs failed:', error)
+      return {
+        success: false,
+        kycs: [],
+        message: error.response?.data?.message || 'Failed to retrieve KYCs'
+      }
     }
   }
 
-  async createAccount(accountData: AccountData): Promise<AccountResponse> {
+  async updateKYCStatus(kycId: string, userReferenceId: string, status: string): Promise<KYCStatusUpdateResponse> {
     try {
-      // Holobank Account Creation API endpoint
+      const response: AxiosResponse = await this.axiosInstance.put(`/api/kyc/v1/kyc/${kycId}/status`, {
+        status
+      }, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
+      })
+      
+      return {
+        success: true,
+        kycId: kycId,
+        status: response.data.status || status,
+        message: 'KYC status updated successfully'
+      }
+    } catch (error) {
+      Logger.error('KYC Status update failed:', error)
+      return {
+        success: false,
+        kycId: kycId,
+        status: 'failed',
+        message: error.response?.data?.message || 'KYC status update failed'
+      }
+    }
+  }
+
+  async createAccount(accountData: AccountData, userReferenceId: string): Promise<AccountResponse> {
+    try {
+      // Create bank account (REAP or JDB only, PLATFORM is auto-created)
       const response: AxiosResponse = await this.axiosInstance.post('/api/accounts/v1/accounts', {
-        customerId: accountData.userId,
         type: accountData.type,
         currency: accountData.currency
+      }, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
       })
       
       return {
@@ -273,7 +375,7 @@ class HolobankService {
         type: response.data.type,
         currency: response.data.currency,
         balance: response.data.balance || 0,
-        message: 'Account created successfully'
+        message: `${accountData.type} account created successfully`
       }
     } catch (error) {
       Logger.error('Account creation failed:', error)
@@ -288,10 +390,37 @@ class HolobankService {
     }
   }
 
-  async getAccounts(userId: string): Promise<AccountResponse[]> {
+  async getDepositInfo(accountId: string, userReferenceId: string): Promise<DepositInfoResponse> {
     try {
-      // Holobank Get Accounts API endpoint
-      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/customers/${userId}/accounts`)
+      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/accounts/${accountId}/deposit`, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
+      })
+      
+      return {
+        success: true,
+        walletAddress: response.data.walletAddress || response.data.address,
+        currency: response.data.currency,
+        network: response.data.network,
+        message: 'Deposit info retrieved successfully'
+      }
+    } catch (error) {
+      Logger.error('Get deposit info failed:', error)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get deposit info'
+      }
+    }
+  }
+
+  async getAccounts(userReferenceId: string): Promise<AccountResponse[]> {
+    try {
+      const response: AxiosResponse = await this.axiosInstance.get('/api/accounts/v1/accounts', {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
+      })
       
       const accounts = response.data.accounts || response.data || []
       return accounts.map((account: any) => ({
@@ -308,14 +437,18 @@ class HolobankService {
     }
   }
 
-  async createCard(cardData: CardData): Promise<CardResponse> {
+  async createCard(cardData: CardData, userReferenceId: string): Promise<CardResponse> {
     try {
-      // Holobank Card Creation API endpoint
+      // Fixed card creation with productId 9 for REAP/JDB accounts only
       const response: AxiosResponse = await this.axiosInstance.post('/api/cards/v1/cards', {
         accountId: cardData.accountId,
-        customerId: cardData.userId,
+        productId: cardData.productId || 9,
         type: cardData.type,
         limit: cardData.limit
+      }, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
       })
       
       return {
@@ -339,15 +472,18 @@ class HolobankService {
     }
   }
 
-  async transfer(transferData: TransferData): Promise<TransferResponse> {
+  async transfer(transferData: TransferData, userReferenceId: string): Promise<TransferResponse> {
     try {
-      // Holobank Transfer API endpoint
-      const response: AxiosResponse = await this.axiosInstance.post('/api/transfers/v1/transfers', {
+      // Bank account transfer (PLATFORM to REAP typically)
+      const response: AxiosResponse = await this.axiosInstance.post('/api/accounts/v1/transfer', {
         fromAccountId: transferData.fromAccountId,
         toAccountId: transferData.toAccountId,
         amount: transferData.amount,
-        currency: transferData.currency,
-        customerId: transferData.userId
+        currency: transferData.currency
+      }, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
       })
       
       return {
@@ -375,10 +511,14 @@ class HolobankService {
     }
   }
 
-  async getBalance(accountId: string, userId: string): Promise<BalanceResponse> {
+  async getBalance(accountId: string, userReferenceId: string): Promise<BalanceResponse> {
     try {
-      // Holobank Balance API endpoint
-      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/accounts/${accountId}/balance?customerId=${userId}`)
+      // Get bank account balance
+      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/accounts/${accountId}/balance`, {
+        headers: {
+          'x-ref-id': userReferenceId
+        }
+      })
       
       return {
         success: true,
@@ -394,7 +534,7 @@ class HolobankService {
         success: false,
         accountId: accountId,
         balance: 0,
-        currency: 'USD',
+        currency: 'USDC',
         lastUpdated: new Date(),
         message: error.response?.data?.message || 'Failed to retrieve balance'
       }

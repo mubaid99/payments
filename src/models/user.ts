@@ -22,6 +22,8 @@ export interface IBankCard {
 
 export interface IBankDetails {
   holobankUserId?: string
+  userReferenceId?: string
+  kycId?: string
   accounts: IBankAccount[]
   cards: IBankCard[]
   kycStatus?: string
@@ -135,6 +137,8 @@ const BankCardSchema = new Schema<IBankCard>({
 // Bank details schema
 const BankDetailsSchema = new Schema<IBankDetails>({
   holobankUserId: String,
+  userReferenceId: String,
+  kycId: String,
   accounts: {
     type: [BankAccountSchema],
     default: []
@@ -145,7 +149,7 @@ const BankDetailsSchema = new Schema<IBankDetails>({
   },
   kycStatus: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'under_review'],
+    enum: ['pending', 'submitted', 'approved', 'rejected', 'under_review'],
     default: 'pending'
   }
 }, { _id: false })

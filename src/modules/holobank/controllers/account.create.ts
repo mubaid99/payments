@@ -9,14 +9,22 @@ import '@core/declarations'
  */
 export const createAccount = async (req: Request, res: Response) => {
   try {
-    const { userId, type, currency } = req.body
-
-    if (!userId || !type || !currency) {
-      return (res as any).badRequest({ 
-        error: 'User ID, account type, and currency are required' 
+    const { type, currency } = req.body
+    const authenticatedUser = (req as any).user
+    
+    if (!authenticatedUser) {
+      return (res as any).unauthorized({ 
+        error: 'User authentication required' 
       })
     }
-
+    
+    if (!type || !currency) {
+      return (res as any).badRequest({ 
+        error: 'Account type and currency are required' 
+      })
+    }
+    
+    const userId = authenticatedUser._id.toString()
     const user = await User.findById(userId)
     if (!user) {
       return (res as any).notFound({ 
@@ -24,9 +32,22 @@ export const createAccount = async (req: Request, res: Response) => {
       })
     }
 
-    if (!user.bankDetails || user.bankDetails.kycStatus !== 'approved') {
+    if (!user.bankDetails?.userReferenceId) {
+      return (res as any).badRequest({ 
+        error: 'Core user must be created first' 
+      })
+    }
+
+    if (user.bankDetails.kycStatus !== 'approved') {
       return (res as any).badRequest({ 
         error: 'KYC must be approved before creating an account' 
+      })
+    }
+
+    // Validate account type (only REAP and JDB can be created, PLATFORM is auto-created)
+    if (!['REAP', 'JDB'].includes(type)) {
+      return (res as any).badRequest({ 
+        error: 'Only REAP (crypto) and JDB (fiat) accounts can be created manually' 
       })
     }
 
@@ -35,7 +56,7 @@ export const createAccount = async (req: Request, res: Response) => {
       userId,
       type,
       currency
-    })
+    }, user.bankDetails.userReferenceId)
 
     if (!accountResponse.success) {
       return (res as any).badRequest({ 

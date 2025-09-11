@@ -25,8 +25,13 @@ router.post('/webhook',
 // All other routes require authentication
 router.use(authorize)
 
+// User creation route
+router.post('/user', Wrap(Controller.createCoreUser))
+
 // KYC routes
 router.post('/kyc', Wrap(Controller.uploadKYC))
+router.get('/kyc/list', Wrap(Controller.listKYCs))
+router.put('/kyc/status', Wrap(Controller.updateKYCStatus))
 
 // Account routes
 router.post('/account', Wrap(Controller.createAccount))
@@ -39,6 +44,9 @@ router.post('/transfer', Wrap(Controller.createTransfer))
 
 // Balance routes
 router.get('/balance/:accountId', Wrap(Controller.getBalance))
+
+// Deposit info routes
+router.get('/deposit/:accountId', Wrap(Controller.getDepositInfo))
 
 // Transaction routes
 router.get('/transactions', Wrap(Controller.getTransactions))

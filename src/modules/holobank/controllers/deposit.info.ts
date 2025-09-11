@@ -4,10 +4,10 @@ import { User } from '@models/user'
 import '@core/declarations'
 
 /**
- * Get account balance
- * GET /holobank/balance/:accountId
+ * Get deposit info for external transfers (e.g., MetaMask to PLATFORM)
+ * GET /holobank/deposit/:accountId
  */
-export const getBalance = async (req: Request, res: Response) => {
+export const getDepositInfo = async (req: Request, res: Response) => {
   try {
     const { accountId } = req.params
     const authenticatedUser = (req as any).user
@@ -32,8 +32,14 @@ export const getBalance = async (req: Request, res: Response) => {
       })
     }
 
+    if (!user.bankDetails?.userReferenceId) {
+      return (res as any).badRequest({ 
+        error: 'Core user must be created first' 
+      })
+    }
+
     // Verify account belongs to user
-    const userAccount = user.bankDetails?.accounts.find(
+    const userAccount = user.bankDetails.accounts.find(
       account => account.accountId === accountId
     )
 
@@ -43,40 +49,37 @@ export const getBalance = async (req: Request, res: Response) => {
       })
     }
 
-    // Get latest balance from Holobank using new API structure
-    const balanceResponse = await holobankService.getBalance(accountId, user.bankDetails.userReferenceId)
-
-    if (!balanceResponse.success) {
+    // Only PLATFORM accounts can receive external deposits
+    if (userAccount.type !== 'PLATFORM') {
       return (res as any).badRequest({ 
-        error: 'Failed to fetch balance' 
+        error: 'Deposit info only available for PLATFORM accounts' 
       })
     }
 
-    // Update local balance
-    userAccount.balance = balanceResponse.balance
-    await user.save()
+    // Get deposit info from Holobank
+    const depositResponse = await holobankService.getDepositInfo(
+      accountId, 
+      user.bankDetails.userReferenceId
+    )
 
-    // Emit real-time balance update
-    const io = global.io
-    if (io) {
-      io.to(userId as string).emit('holobank:balanceUpdate', {
-        accountId: accountId,
-        newBalance: balanceResponse.balance,
-        currency: balanceResponse.currency
+    if (!depositResponse.success) {
+      return (res as any).badRequest({ 
+        error: depositResponse.message || 'Failed to get deposit info' 
       })
     }
 
     return (res as any).success({
       data: {
-        accountId: balanceResponse.accountId,
-        balance: balanceResponse.balance,
-        currency: balanceResponse.currency,
-        lastUpdated: new Date()
+        accountId: accountId,
+        walletAddress: depositResponse.walletAddress,
+        currency: depositResponse.currency,
+        network: depositResponse.network,
+        message: 'Deposit info retrieved successfully'
       }
     })
 
   } catch (error) {
-    Logger.error('Get Balance Error:', error)
+    Logger.error('Get Deposit Info Error:', error)
     return (res as any).internalServerError({ 
       error: error.message 
     })
