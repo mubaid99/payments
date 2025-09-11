@@ -161,33 +161,34 @@ class HolobankService {
       // Add file uploads if provided
       if (files) {
         if (files.passportImage) {
-          formData.append('passportImage', files.passportImage)
+          formData.append('passportImage', files.passportImage.buffer, files.passportImage.filename)
         }
         if (files.nationalIdImage) {
-          formData.append('nationalIdImage', files.nationalIdImage)
+          formData.append('nationalIdImage', files.nationalIdImage.buffer, files.nationalIdImage.filename)
         }
         if (files.passportSelfie) {
-          formData.append('passportSelfie', files.passportSelfie)
+          formData.append('passportSelfie', files.passportSelfie.buffer, files.passportSelfie.filename)
         }
         if (files.nationalIdSelfieImage) {
-          formData.append('nationalIdSelfieImage', files.nationalIdSelfieImage)
+          formData.append('nationalIdSelfieImage', files.nationalIdSelfieImage.buffer, files.nationalIdSelfieImage.filename)
         }
         if (files.digitalSignature) {
-          formData.append('digitalSignature', files.digitalSignature)
+          formData.append('digitalSignature', files.digitalSignature.buffer, files.digitalSignature.filename)
         }
       }
 
       const response: AxiosResponse = await this.axiosInstance.post('/api/kyc/v1/kyc/private', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type manually - let axios handle multipart boundaries
           'x-ref-id': kycData.userReferenceId
         }
       })
 
       return {
         success: response.status === 204 || response.status === 200,
-        message: 'KYC submitted successfully',
-        status: 'submitted'
+        kycId: response.data?.kycId || response.data?.id || kycData.userReferenceId,
+        message: response.data?.message || 'KYC submitted successfully',
+        status: response.data?.status || 'submitted'
       }
     } catch (error) {
       Logger.error('KYC Upload failed:', error)
@@ -278,7 +279,7 @@ class HolobankService {
 // Export singleton instance
 const holobankService = new HolobankService({
   apiKey: process.env.HOLOBANK_API_KEY || '',
-  baseURL: process.env.HOLOBANK_API || 'https://sandbox.holobank.net/v1'
+  baseURL: process.env.HOLOBANK_API || 'https://sandbox.holobank.net'
 })
 
 export default holobankService

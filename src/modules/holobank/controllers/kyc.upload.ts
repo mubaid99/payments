@@ -4,22 +4,115 @@ import { User } from '@models/user'
 import '@core/declarations'
 
 /**
- * Upload KYC documents for a user
+ * Upload KYC documents for a user with Holobank API
  * POST /holobank/kyc
  */
 export const uploadKYC = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body
-    const file = (req as any).files?.document
+    const {
+      userId,
+      personalIdentificationNumber,
+      specialCode,
+      title,
+      firstName,
+      lastName,
+      nationality,
+      occupation,
+      dateOfBirth,
+      placeOfBirth,
+      passportNumber,
+      passportIssuedBy,
+      passportIssueDate,
+      passportExpiryDate,
+      country,
+      address,
+      district,
+      city,
+      postalCode,
+      isSameResidentialAddress,
+      residentialCountry,
+      residentialAddress,
+      residentialDistrict,
+      residentialCity,
+      residentialPostalCode,
+      phoneNumber,
+      email
+    } = req.body
 
-    if (!userId || !file) {
+    // Validate required fields according to Holobank API
+    const requiredFields = [
+      'userId', 'title', 'firstName', 'lastName', 'nationality', 
+      'occupation', 'dateOfBirth', 'placeOfBirth', 'country', 
+      'address', 'district', 'city', 'postalCode', 'phoneNumber', 'email'
+    ]
+
+    const missingFields = requiredFields.filter(field => !req.body[field])
+    if (missingFields.length > 0) {
       return (res as any).badRequest({ 
-        error: 'User ID and document file are required' 
+        error: `Missing required fields: ${missingFields.join(', ')}` 
       })
     }
 
+    // Validate occupation enum (as per Holobank docs)
+    const validOccupations = ['Employee', 'Public Staff', 'Staff', 'General Customer', 'Special Customer', 'Agent']
+    if (!validOccupations.includes(occupation)) {
+      return (res as any).badRequest({ 
+        error: `Invalid occupation. Must be one of: ${validOccupations.join(', ')}` 
+      })
+    }
+
+    // Get uploaded files and format them properly for FormData
+    const rawFiles = (req as any).files
+    let files = undefined
+    
+    if (rawFiles) {
+      files = {}
+      // Handle express-fileupload format
+      Object.keys(rawFiles).forEach(key => {
+        const file = rawFiles[key]
+        if (file && file.data) {
+          files[key] = {
+            buffer: file.data,
+            filename: file.name,
+            mimetype: file.mimetype
+          }
+        }
+      })
+    }
+
+    // Prepare KYC data in Holobank format
+    const kycData = {
+      personalIdentificationNumber,
+      specialCode,
+      title,
+      firstName,
+      lastName,
+      nationality,
+      occupation,
+      dateOfBirth,
+      placeOfBirth,
+      passportNumber,
+      passportIssuedBy,
+      passportIssueDate,
+      passportExpiryDate,
+      country,
+      address,
+      district,
+      city,
+      postalCode,
+      isSameResidentialAddress: isSameResidentialAddress === 'true' || isSameResidentialAddress === true,
+      residentialCountry,
+      residentialAddress,
+      residentialDistrict,
+      residentialCity,
+      residentialPostalCode,
+      phoneNumber,
+      email,
+      userReferenceId: userId
+    }
+
     // Upload KYC to Holobank
-    const kycResponse = await holobankService.uploadKYC(userId, file)
+    const kycResponse = await holobankService.uploadKYC(kycData, files)
 
     if (!kycResponse.success) {
       return (res as any).badRequest({ 
@@ -44,16 +137,16 @@ export const uploadKYC = async (req: Request, res: Response) => {
       }
     }
 
-    user.bankDetails.holobankUserId = kycResponse.kycId
-    user.bankDetails.kycStatus = kycResponse.status
+    user.bankDetails.holobankUserId = userId // Use userId as reference
+    user.bankDetails.kycStatus = kycResponse.status || 'submitted'
 
     await user.save()
 
     return (res as any).success({
       data: {
-        kycId: kycResponse.kycId,
-        status: kycResponse.status,
-        message: 'KYC documents uploaded successfully'
+        userReferenceId: userId,
+        status: kycResponse.status || 'submitted',
+        message: kycResponse.message || 'KYC documents uploaded successfully'
       }
     })
 
