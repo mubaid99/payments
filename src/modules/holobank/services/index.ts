@@ -51,6 +51,13 @@ interface AccountResponse {
   type: string
   currency: string
   balance: number
+  message?: string
+}
+
+interface AccountData {
+  userId: string
+  type: 'checking' | 'savings' | 'business'
+  currency: 'USD' | 'EUR' | 'GBP'
 }
 
 interface CardResponse {
@@ -59,6 +66,14 @@ interface CardResponse {
   type: string
   limit: number
   status: string
+  message?: string
+}
+
+interface CardData {
+  userId: string
+  accountId: string
+  type: 'debit' | 'credit' | 'prepaid'
+  limit: number
 }
 
 interface TransferResponse {
@@ -69,6 +84,15 @@ interface TransferResponse {
   amount: number
   currency: string
   status: string
+  message?: string
+}
+
+interface TransferData {
+  userId: string
+  fromAccountId: string
+  toAccountId: string
+  amount: number
+  currency: string
 }
 
 interface BalanceResponse {
@@ -76,6 +100,8 @@ interface BalanceResponse {
   accountId: string
   balance: number
   currency: string
+  lastUpdated: Date
+  message?: string
 }
 
 class HolobankService {
@@ -213,66 +239,146 @@ class HolobankService {
     }
   }
 
-  async createAccount(userId: string, type: string, currency: string): Promise<AccountResponse> {
+  async createAccount(accountData: AccountData): Promise<AccountResponse> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.post('/accounts', {
-        userId,
-        type,
-        currency
+      // Holobank Account Creation API endpoint
+      const response: AxiosResponse = await this.axiosInstance.post('/api/accounts/v1/accounts', {
+        customerId: accountData.userId,
+        type: accountData.type,
+        currency: accountData.currency
       })
-      return response.data
+      
+      return {
+        success: true,
+        accountId: response.data.accountId || response.data.id,
+        type: response.data.type,
+        currency: response.data.currency,
+        balance: response.data.balance || 0,
+        message: 'Account created successfully'
+      }
     } catch (error) {
       Logger.error('Account creation failed:', error)
-      throw error
+      return {
+        success: false,
+        accountId: '',
+        type: accountData.type,
+        currency: accountData.currency,
+        balance: 0,
+        message: error.response?.data?.message || 'Account creation failed'
+      }
     }
   }
 
   async getAccounts(userId: string): Promise<AccountResponse[]> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.get(`/accounts/${userId}`)
-      return response.data
+      // Holobank Get Accounts API endpoint
+      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/customers/${userId}/accounts`)
+      
+      const accounts = response.data.accounts || response.data || []
+      return accounts.map((account: any) => ({
+        success: true,
+        accountId: account.accountId || account.id,
+        type: account.type,
+        currency: account.currency,
+        balance: account.balance || 0,
+        message: 'Account retrieved successfully'
+      }))
     } catch (error) {
       Logger.error('Get accounts failed:', error)
-      throw error
+      return []
     }
   }
 
-  async createCard(accountId: string, type: string, limit: number): Promise<CardResponse> {
+  async createCard(cardData: CardData): Promise<CardResponse> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.post('/cards', {
-        accountId,
-        type,
-        limit
+      // Holobank Card Creation API endpoint
+      const response: AxiosResponse = await this.axiosInstance.post('/api/cards/v1/cards', {
+        accountId: cardData.accountId,
+        customerId: cardData.userId,
+        type: cardData.type,
+        limit: cardData.limit
       })
-      return response.data
+      
+      return {
+        success: true,
+        cardId: response.data.cardId || response.data.id,
+        type: response.data.type,
+        limit: response.data.limit,
+        status: response.data.status || 'active',
+        message: 'Card created successfully'
+      }
     } catch (error) {
       Logger.error('Card creation failed:', error)
-      throw error
+      return {
+        success: false,
+        cardId: '',
+        type: cardData.type,
+        limit: cardData.limit,
+        status: 'failed',
+        message: error.response?.data?.message || 'Card creation failed'
+      }
     }
   }
 
-  async transfer(from: string, to: string, amount: number, currency: string): Promise<TransferResponse> {
+  async transfer(transferData: TransferData): Promise<TransferResponse> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.post('/transfers', {
-        from,
-        to,
-        amount,
-        currency
+      // Holobank Transfer API endpoint
+      const response: AxiosResponse = await this.axiosInstance.post('/api/transfers/v1/transfers', {
+        fromAccountId: transferData.fromAccountId,
+        toAccountId: transferData.toAccountId,
+        amount: transferData.amount,
+        currency: transferData.currency,
+        customerId: transferData.userId
       })
-      return response.data
+      
+      return {
+        success: true,
+        transactionId: response.data.transactionId || response.data.id,
+        from: transferData.fromAccountId,
+        to: transferData.toAccountId,
+        amount: transferData.amount,
+        currency: transferData.currency,
+        status: response.data.status || 'completed',
+        message: 'Transfer completed successfully'
+      }
     } catch (error) {
       Logger.error('Transfer failed:', error)
-      throw error
+      return {
+        success: false,
+        transactionId: '',
+        from: transferData.fromAccountId,
+        to: transferData.toAccountId,
+        amount: transferData.amount,
+        currency: transferData.currency,
+        status: 'failed',
+        message: error.response?.data?.message || 'Transfer failed'
+      }
     }
   }
 
-  async getBalance(accountId: string): Promise<BalanceResponse> {
+  async getBalance(accountId: string, userId: string): Promise<BalanceResponse> {
     try {
-      const response: AxiosResponse = await this.axiosInstance.get(`/accounts/${accountId}/balance`)
-      return response.data
+      // Holobank Balance API endpoint
+      const response: AxiosResponse = await this.axiosInstance.get(`/api/accounts/v1/accounts/${accountId}/balance?customerId=${userId}`)
+      
+      return {
+        success: true,
+        accountId: accountId,
+        balance: response.data.balance || response.data.availableBalance || 0,
+        currency: response.data.currency,
+        lastUpdated: new Date(response.data.lastUpdated || Date.now()),
+        message: 'Balance retrieved successfully'
+      }
     } catch (error) {
       Logger.error('Get balance failed:', error)
-      throw error
+      return {
+        success: false,
+        accountId: accountId,
+        balance: 0,
+        currency: 'USD',
+        lastUpdated: new Date(),
+        message: error.response?.data?.message || 'Failed to retrieve balance'
+      }
     }
   }
 }
