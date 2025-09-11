@@ -6,7 +6,21 @@ import { authorize } from '@helpers/authorizer'
 const router = express.Router()
 
 // Webhook routes (no authentication needed for webhooks)
-router.post('/webhook', Wrap(Controller.handleWebhook))
+// Use raw body parser for signature verification
+router.post('/webhook', 
+  express.raw({ type: 'application/json' }),
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Store raw body and parse JSON for controller
+    (req as any).rawBody = req.body
+    try {
+      req.body = JSON.parse(req.body.toString())
+    } catch (e) {
+      req.body = {}
+    }
+    next()
+  },
+  Wrap(Controller.handleWebhook)
+)
 
 // All other routes require authentication
 router.use(authorize)

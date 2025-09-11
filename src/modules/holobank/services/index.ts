@@ -53,11 +53,12 @@ class HolobankService {
   constructor(config: HolobankConfig) {
     this.apiKey = config.apiKey
     this.axiosInstance = axios.create({
-      baseURL: config.baseURL || 'https://sandbox.holobank.net/v1',
+      baseURL: config.baseURL || 'https://api.tap.company/v2',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
       }
     })
 

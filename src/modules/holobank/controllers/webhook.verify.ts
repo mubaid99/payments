@@ -5,26 +5,55 @@ import { Transaction } from '@models/transaction'
 import '@core/declarations'
 
 /**
- * Verify webhook signature using HMAC-SHA256
+ * Verify webhook signature using HMAC-SHA256 with proper buffer handling
  */
-function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+function verifyWebhookSignature(payload: string | Buffer, signature: string, secret: string): boolean {
   try {
-    // Remove 'sha256=' prefix if present
-    const receivedSignature = signature.startsWith('sha256=') 
-      ? signature.slice(7) 
-      : signature
+    // Handle different signature formats
+    let receivedSignature = signature
+    
+    // Remove common prefixes
+    if (signature.startsWith('sha256=')) {
+      receivedSignature = signature.slice(7)
+    } else if (signature.startsWith('v1=')) {
+      receivedSignature = signature.slice(3)
+    }
 
     // Calculate expected signature
     const expectedSignature = crypto
       .createHmac('sha256', secret)
-      .update(payload, 'utf8')
+      .update(payload)
       .digest('hex')
 
+    // Convert to buffers and ensure same length before comparison
+    let receivedBuffer: Buffer
+    let expectedBuffer: Buffer
+
+    try {
+      // Try hex first, then base64
+      receivedBuffer = Buffer.from(receivedSignature, 'hex')
+      expectedBuffer = Buffer.from(expectedSignature, 'hex')
+      
+      // If lengths don't match, try base64 for received signature
+      if (receivedBuffer.length !== expectedBuffer.length) {
+        receivedBuffer = Buffer.from(receivedSignature, 'base64')
+      }
+      
+      // If still don't match, reject
+      if (receivedBuffer.length !== expectedBuffer.length) {
+        Logger.warn('Signature length mismatch', {
+          receivedLength: receivedBuffer.length,
+          expectedLength: expectedBuffer.length
+        })
+        return false
+      }
+    } catch (bufferError) {
+      Logger.warn('Failed to parse signature buffer')
+      return false
+    }
+
     // Use constant-time comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
-      Buffer.from(receivedSignature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
-    )
+    return crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
   } catch (error) {
     Logger.error('Signature verification error:', error)
     return false
@@ -37,20 +66,37 @@ function verifyWebhookSignature(payload: string, signature: string, secret: stri
  */
 export const handleWebhook = async (req: Request, res: Response) => {
   try {
-    // Get signature from headers (common header names)
-    const signature = req.headers['x-holobank-signature'] || 
+    // Get signature from headers (support multiple webhook providers)
+    const signature = req.headers['x-tap-signature'] ||
+                     req.headers['x-holobank-signature'] || 
                      req.headers['x-signature'] ||
                      req.headers['x-signature-sha256'] ||
-                     req.headers['holobank-signature']
+                     req.headers['holobank-signature'] ||
+                     req.headers['tap-signature']
 
     if (!signature) {
       Logger.warn('Missing webhook signature')
       return res.status(400).json({ error: 'Missing signature header' })
     }
 
-    // Get raw payload
-    const rawPayload = JSON.stringify(req.body)
-    const webhookSecret = process.env.HOLOBANK_WEBHOOK_SECRET
+    // Use raw request body for signature verification
+    let rawPayload: Buffer | string
+    if ((req as any).rawBody && Buffer.isBuffer((req as any).rawBody)) {
+      rawPayload = (req as any).rawBody
+    } else if (typeof (req as any).rawBody === 'string') {
+      rawPayload = (req as any).rawBody
+    } else {
+      // Fallback to JSON string if raw body not available
+      rawPayload = JSON.stringify(req.body)
+    }
+    
+    // Determine provider and get appropriate secret
+    let webhookSecret: string | undefined
+    if (req.headers['x-tap-signature']) {
+      webhookSecret = process.env.TAP_WEBHOOK_SECRET || process.env.HOLOBANK_WEBHOOK_SECRET
+    } else {
+      webhookSecret = process.env.HOLOBANK_WEBHOOK_SECRET
+    }
 
     if (!webhookSecret) {
       Logger.error('Webhook secret not configured')
@@ -64,32 +110,46 @@ export const handleWebhook = async (req: Request, res: Response) => {
     }
 
     const webhookData = req.body
-    const { event_type, data, reference_id } = webhookData
+    const { event_type, data, reference_id, id, status } = webhookData
 
-    Logger.info(`Received Holobank webhook: ${event_type}`, { reference_id })
+    // Handle different webhook formats (Tap Payments format vs custom format)
+    const eventType = event_type || (status ? 'payment.status_updated' : 'unknown')
+    const referenceId = reference_id || webhookData.reference || webhookData.merchant_reference
+    const webhookId = id || webhookData.webhook_id
+
+    Logger.info(`Received webhook: ${eventType}`, { 
+      webhookId, 
+      referenceId, 
+      status: status || data?.status 
+    })
 
     // Handle different webhook events
-    switch (event_type) {
+    switch (eventType) {
       case 'kyc.status_updated':
-        await handleKYCStatusUpdate(data, reference_id)
+        await handleKYCStatusUpdate(data || webhookData, referenceId)
         break
       
       case 'transaction.created':
       case 'transaction.completed':
       case 'transaction.failed':
-        await handleTransactionUpdate(data, reference_id)
+      case 'payment.status_updated':
+        await handleTransactionUpdate(data || webhookData, referenceId)
         break
         
       case 'account.balance_updated':
-        await handleBalanceUpdate(data, reference_id)
+        await handleBalanceUpdate(data || webhookData, referenceId)
         break
         
       case 'card.status_updated':
-        await handleCardStatusUpdate(data, reference_id)
+        await handleCardStatusUpdate(data || webhookData, referenceId)
         break
         
       default:
-        Logger.warn(`Unknown webhook event type: ${event_type}`)
+        Logger.warn(`Unknown webhook event type: ${eventType}`)
+        // Still process as a generic payment event if it has payment data
+        if (webhookData.amount && webhookData.currency && referenceId) {
+          await handleTransactionUpdate(webhookData, referenceId)
+        }
         break
     }
 
@@ -97,7 +157,8 @@ export const handleWebhook = async (req: Request, res: Response) => {
     res.status(200).json({ 
       success: true, 
       message: 'Webhook processed successfully',
-      event_type 
+      event_type: eventType,
+      webhook_id: webhookId
     })
 
   } catch (error) {
