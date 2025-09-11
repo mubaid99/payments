@@ -6,6 +6,7 @@ import notificationMessages from '../notification-messages'
 import FCMModel from '@models/fcm.model'
 
 import { User } from '@models/user'
+import { Transaction } from '@models/transaction'
 
 
 const config: ConfigInterface = Config()
@@ -13,11 +14,12 @@ const config: ConfigInterface = Config()
 export const Global: any = global
 Global.Logger = Logger
 Global.App = {
-	Config: config,
-	Message: GenerateCallableMessages(messages),
-	Notification: GenerateCallableMessages(notificationMessages),
-	Models: {
-		FCM:FCMModel,
-		User:User,
-	}
+        Config: config,
+        Message: GenerateCallableMessages(messages),
+        Notification: GenerateCallableMessages(notificationMessages),
+        Models: {
+                FCM:FCMModel,
+                User:User,
+                Transaction:Transaction,
+        }
 }
