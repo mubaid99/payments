@@ -30,8 +30,12 @@ export const createAccount = async (req: Request, res: Response) => {
       })
     }
 
-    // Create account with Holobank
-    const accountResponse = await holobankService.createAccount(userId, type, currency)
+    // Create account with Holobank API
+    const accountResponse = await holobankService.createAccount({
+      userId,
+      type,
+      currency
+    })
 
     if (!accountResponse.success) {
       return (res as any).badRequest({ 

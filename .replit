@@ -27,9 +27,13 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_ENV=development PORT=3000 DB_CONNECTION_STRING=\"mongodb+srv://ubaid:ubaid@cluster0.2ei8y.mongodb.net/ubaidtest\" BACKEND_HOST_URL=http://localhost:3000 JWT_SECRET=dev-jwt-secret-key JWT_EXPIRY=24h CRYPTO_SECRET_KEY=dev-crypto-secret BCRYPT_SALTROUND=10 BRAND_NAME=Crondex HOLOBANK_API_KEY=placeholder-api-key npm run dev"
+args = "NODE_ENV=development PORT=3000 npm run dev"
 waitForPort = 3000
 
 [[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 41623
+externalPort = 80

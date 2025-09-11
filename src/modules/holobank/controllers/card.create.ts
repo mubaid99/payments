@@ -35,8 +35,13 @@ export const createCard = async (req: Request, res: Response) => {
       })
     }
 
-    // Create card with Holobank
-    const cardResponse = await holobankService.createCard(accountId, type, limit)
+    // Create card with Holobank using new API structure
+    const cardResponse = await holobankService.createCard({
+      userId,
+      accountId,
+      type,
+      limit
+    })
 
     if (!cardResponse.success) {
       return (res as any).badRequest({ 

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import holobankService from '../services'
 import { User } from '@models/user'
+import { Transaction } from '@models/transaction'
+import { v4 as uuidv4 } from 'uuid'
 import '@core/declarations'
 
 /**
@@ -42,19 +44,60 @@ export const createTransfer = async (req: Request, res: Response) => {
       })
     }
 
-    // Process transfer with Holobank
-    const transferResponse = await holobankService.transfer(
-      fromAccountId, 
-      toAccountId, 
-      amount, 
+    // Create transaction record first
+    const transactionId = uuidv4()
+    const transaction = new Transaction({
+      userId: userId,
+      transactionId: transactionId,
+      type: 'transfer',
+      amount: amount,
+      currency: currency,
+      fromAccountId: fromAccountId,
+      toAccountId: toAccountId,
+      status: 'pending',
+      description: `Transfer from ${fromAccountId} to ${toAccountId}`,
+      metadata: {
+        transferType: 'holobank',
+        initiatedBy: userId
+      }
+    })
+
+    await transaction.save()
+
+    // Process transfer with Holobank using new API structure
+    const transferResponse = await holobankService.transfer({
+      userId,
+      fromAccountId,
+      toAccountId,
+      amount,
       currency
-    )
+    })
 
     if (!transferResponse.success) {
+      // Update transaction status to failed
+      transaction.status = 'failed'
+      transaction.metadata = {
+        ...transaction.metadata,
+        error: transferResponse.message,
+        failedAt: new Date()
+      }
+      await transaction.save()
+      
       return (res as any).badRequest({ 
-        error: 'Transfer failed' 
+        error: transferResponse.message || 'Transfer failed' 
       })
     }
+
+    // Update transaction with success
+    transaction.holobankTransactionId = transferResponse.transactionId
+    transaction.status = 'completed'
+    transaction.processedAt = new Date()
+    transaction.metadata = {
+      ...transaction.metadata,
+      holobankResponse: transferResponse,
+      completedAt: new Date()
+    }
+    await transaction.save()
 
     // Update sender balance
     senderAccount.balance = (senderAccount.balance || 0) - amount

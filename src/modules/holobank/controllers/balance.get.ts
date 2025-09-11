@@ -36,8 +36,8 @@ export const getBalance = async (req: Request, res: Response) => {
       })
     }
 
-    // Get latest balance from Holobank
-    const balanceResponse = await holobankService.getBalance(accountId)
+    // Get latest balance from Holobank using new API structure
+    const balanceResponse = await holobankService.getBalance(accountId, userId as string)
 
     if (!balanceResponse.success) {
       return (res as any).badRequest({ 
