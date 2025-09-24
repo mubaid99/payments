@@ -72,6 +72,9 @@ export interface ConfigInterface {
                 API_URL: string
                 WEBHOOK_SECRET: string
         }
+        RANGO: {
+                API_KEY: string
+        }
 
 }
 

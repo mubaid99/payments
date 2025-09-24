@@ -73,6 +73,9 @@ export default (): ConfigInterface => {
                         API_KEY: process.env.HOLOBANK_API_KEY,
                         API_URL: process.env.HOLOBANK_API,
                         WEBHOOK_SECRET: process.env.HOLOBANK_WEBHOOK_SECRET
+                },
+                RANGO: {
+                        API_KEY: process.env.RANGO_API_KEY
                 }
 
         }
