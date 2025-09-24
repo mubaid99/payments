@@ -544,8 +544,8 @@ class HolobankService {
 
 // Export singleton instance
 const holobankService = new HolobankService({
-  apiKey: process.env.HOLOBANK_API_KEY || '',
-  baseURL: process.env.HOLOBANK_API || 'https://sandbox.holobank.net'
+  apiKey: App.Config.HOLOBANK.API_KEY || '',
+  baseURL: App.Config.HOLOBANK.API_URL || 'https://sandbox.holobank.net'
 })
 
 export default holobankService

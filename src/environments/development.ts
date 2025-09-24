@@ -3,72 +3,77 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 export default (): ConfigInterface => {
-	return {
-		PORT: +process.env.PORT,
-		ENVIRONMENT: process.env.NODE_ENV,
-		DB_CONNECTION_STRING: process.env.DB_CONNECTION_STRING,
-		BACKEND_HOST_URL: process.env.BACKEND_HOST_URL,
-		ITEMS_PER_PAGE: +process.env.ITEMS_PER_PAGE,
-		BRAND_NAME: process.env.BRAND_NAME,
-		FRONTEND_HOST_URL: process.env.FRONTEND_HOST_URL,
-		CRYPTO_SECRET_KEY: process.env.CRYPTO_SECRET_KEY,
-		BCRYPT_SALTROUND: process.env.BCRYPT_SALTROUND,
-		COINGECKO: {
-			URL: process.env.COINGECKO_URL,
-			API_KEY: process.env.COINGECKO_API_KEY
-		},
-		JWT: {
-			SECRET: process.env.JWT_SECRET,
-			EXPIRY: process.env.JWT_EXPIRY,
-		},
-		ALCHEMY: {
-			API_KEY: process.env.ALCHEMY_API_KEY,
-			AUTH_TOKEN: process.env.ALCHEMY_AUTH_TOKEN,
-			ADDRESS_WEBHOOK_ID: process.env.ALCHEMY_ADDRESS_WEBHOOK_ID,
-			ADDRESS_WEBHOOK_SIGNING_KEY: process.env.ALCHEMY_ADDRESS_WEBHOOK_SIGNING_KEY,
-		},
-		AWS: {
-			ACCESS_KEY: process.env.AWS_ACCESS_KEY,
-			SECRET_KEY: process.env.AWS_SECRET_KEY,
-			REGION: process.env.AWS_REGION,
-			S3: {
-				BUCKET: process.env.AWS_S3_BUCKET,
-				ACL: process.env.AWS_S3_ACL,
-				USER_FOLDER: process.env.AWS_S3_USER_FOLDER,
-				PROFILE_FOLDER: process.env.AWS_S3_PROFILE_FOLDER,
-				PROJECT_FOLDER: process.env.AWS_S3_PROJECT_FOLDER,
-				PROJECT_TOKEN_FOLDER: process.env.AWS_S3_PROJECT_TOKEN_FOLDER,
-				PROJECT_TOKEN_SYMBOL_FOLDER: process.env.AWS_S3_PROJECT_TOKEN_SYMBOL_FOLDER,
-				PROJECT_TOKEN_DISTRIBUTION_PLAN_FOLDER:
-					process.env.AWS_S3_PROJECT_TOKEN_DISTRIBUTION_PLAN_FOLDER,
-				PROJECT_TEAM_FOLDER: process.env.AWS_S3_PROJECT_TEAM_FOLDER,
-				PROJECT_TEAM_PROFILE_FOLDER: process.env.AWS_S3_PROJECT_TEAM_PROFILE_FOLDER,
-				PROJECT_ROAD_MAP_FOLDER: process.env.AWS_S3_PROJECT_ROAD_MAP_FOLDER,
-				PROJECT_OTHER_FOLDER: process.env.AWS_S3_PROJECT_OTHER_FOLDER,
-			},
-			SES: {
-				API_VERSION: process.env.AWS_SES_API_VERSION,
-				SENDER_EMAIL: process.env.AWS_SES_SENDER_EMAIL,
-			},
-		},
-		CONTRACT: {
-			ICO: {
-				CONTRACT_ADDRESS: process.env.ICO_CONTRACT_ADDRESS,
-			},
-			TOKEN: {
-				CONTRACT_ADDRESS: process.env.TOKEN_CONTRACT_ADDRESS,
-			},
-		},
-		POLYGON: {
-			RPC_URL_WSS: process.env.POLYGON_RPC_URL_WSS,
-			RPC_URL_HTTPS: process.env.POLYGON_RPC_URL_HTTPS,
-		},
-		BACKEND_HOSTED_URL: process.env.BACKEND_HOSTED_URL,
-		COIN_API:{
-			API_KEY:process.env.COINAPI_API_KEY
-		},
-		FIREBASE_SECRET_NAME: process.env.FIREBASE_SECRET_NAME,
-		AUTH_API_URL: process.env.AUTH_API_URL
+        return {
+                PORT: +process.env.PORT,
+                ENVIRONMENT: process.env.NODE_ENV,
+                DB_CONNECTION_STRING: process.env.DB_CONNECTION_STRING,
+                BACKEND_HOST_URL: process.env.BACKEND_HOST_URL,
+                ITEMS_PER_PAGE: +process.env.ITEMS_PER_PAGE,
+                BRAND_NAME: process.env.BRAND_NAME,
+                FRONTEND_HOST_URL: process.env.FRONTEND_HOST_URL,
+                CRYPTO_SECRET_KEY: process.env.CRYPTO_SECRET_KEY,
+                BCRYPT_SALTROUND: process.env.BCRYPT_SALTROUND,
+                COINGECKO: {
+                        URL: process.env.COINGECKO_URL,
+                        API_KEY: process.env.COINGECKO_API_KEY
+                },
+                JWT: {
+                        SECRET: process.env.JWT_SECRET,
+                        EXPIRY: process.env.JWT_EXPIRY,
+                },
+                ALCHEMY: {
+                        API_KEY: process.env.ALCHEMY_API_KEY,
+                        AUTH_TOKEN: process.env.ALCHEMY_AUTH_TOKEN,
+                        ADDRESS_WEBHOOK_ID: process.env.ALCHEMY_ADDRESS_WEBHOOK_ID,
+                        ADDRESS_WEBHOOK_SIGNING_KEY: process.env.ALCHEMY_ADDRESS_WEBHOOK_SIGNING_KEY,
+                },
+                AWS: {
+                        ACCESS_KEY: process.env.AWS_ACCESS_KEY,
+                        SECRET_KEY: process.env.AWS_SECRET_KEY,
+                        REGION: process.env.AWS_REGION,
+                        S3: {
+                                BUCKET: process.env.AWS_S3_BUCKET,
+                                ACL: process.env.AWS_S3_ACL,
+                                USER_FOLDER: process.env.AWS_S3_USER_FOLDER,
+                                PROFILE_FOLDER: process.env.AWS_S3_PROFILE_FOLDER,
+                                PROJECT_FOLDER: process.env.AWS_S3_PROJECT_FOLDER,
+                                PROJECT_TOKEN_FOLDER: process.env.AWS_S3_PROJECT_TOKEN_FOLDER,
+                                PROJECT_TOKEN_SYMBOL_FOLDER: process.env.AWS_S3_PROJECT_TOKEN_SYMBOL_FOLDER,
+                                PROJECT_TOKEN_DISTRIBUTION_PLAN_FOLDER:
+                                        process.env.AWS_S3_PROJECT_TOKEN_DISTRIBUTION_PLAN_FOLDER,
+                                PROJECT_TEAM_FOLDER: process.env.AWS_S3_PROJECT_TEAM_FOLDER,
+                                PROJECT_TEAM_PROFILE_FOLDER: process.env.AWS_S3_PROJECT_TEAM_PROFILE_FOLDER,
+                                PROJECT_ROAD_MAP_FOLDER: process.env.AWS_S3_PROJECT_ROAD_MAP_FOLDER,
+                                PROJECT_OTHER_FOLDER: process.env.AWS_S3_PROJECT_OTHER_FOLDER,
+                        },
+                        SES: {
+                                API_VERSION: process.env.AWS_SES_API_VERSION,
+                                SENDER_EMAIL: process.env.AWS_SES_SENDER_EMAIL,
+                        },
+                },
+                CONTRACT: {
+                        ICO: {
+                                CONTRACT_ADDRESS: process.env.ICO_CONTRACT_ADDRESS,
+                        },
+                        TOKEN: {
+                                CONTRACT_ADDRESS: process.env.TOKEN_CONTRACT_ADDRESS,
+                        },
+                },
+                POLYGON: {
+                        RPC_URL_WSS: process.env.POLYGON_RPC_URL_WSS,
+                        RPC_URL_HTTPS: process.env.POLYGON_RPC_URL_HTTPS,
+                },
+                BACKEND_HOSTED_URL: process.env.BACKEND_HOSTED_URL,
+                COIN_API:{
+                        API_KEY:process.env.COINAPI_API_KEY
+                },
+                FIREBASE_SECRET_NAME: process.env.FIREBASE_SECRET_NAME,
+                AUTH_API_URL: process.env.AUTH_API_URL,
+                HOLOBANK: {
+                        API_KEY: process.env.HOLOBANK_API_KEY,
+                        API_URL: process.env.HOLOBANK_API,
+                        WEBHOOK_SECRET: process.env.HOLOBANK_WEBHOOK_SECRET
+                }
 
-	}
+        }
 }
